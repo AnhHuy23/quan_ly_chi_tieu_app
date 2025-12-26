@@ -5,6 +5,7 @@ import '../../core/utils/currency_formatter.dart';
 import '../../data/repositories/transaction_repository_impl.dart';
 import '../add_transaction/add_transaction_screen.dart';
 import '../statistics/statistics_screen.dart';
+import '../settings/settings_screen.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/transaction_list.dart';
 
@@ -145,7 +146,12 @@ class _HomeTab extends StatelessWidget {
                 actions: [
                   IconButton(
                     onPressed: () {
-                      // TODO: Settings
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SettingsScreen(),
+                        ),
+                      );
                     },
                     icon: const Icon(Icons.settings_outlined),
                   ),

@@ -4,18 +4,28 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'core/theme/app_theme.dart';
 import 'data/repositories/transaction_repository_impl.dart';
 import 'presentation/home/home_screen.dart';
+import 'presentation/error/app_error_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Khởi tạo locale data cho intl
-  await initializeDateFormatting('vi_VN', null);
+  try {
+    // Khởi tạo locale data cho intl
+    await initializeDateFormatting('vi_VN', null);
 
-  // Khởi tạo repository
-  final repository = TransactionRepository();
-  await repository.init();
+    // Khởi tạo repository
+    final repository = TransactionRepository();
+    await repository.init();
 
-  runApp(MyApp(repository: repository));
+    runApp(MyApp(repository: repository));
+  } catch (e, stack) {
+    // Log error và show error UI thay vì crash
+    debugPrint('=== APP INITIALIZATION FAILED ===');
+    debugPrint('Error: $e');
+    debugPrint('Stack trace: $stack');
+
+    runApp(AppErrorScreen(errorMessage: e.toString()));
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -25,8 +35,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: repository,
+    // Dùng ChangeNotifierProvider thay vì .value để Provider quản lý lifecycle
+    // và tự động dispose khi không còn cần thiết
+    return ChangeNotifierProvider<TransactionRepository>(
+      create: (_) => repository,
       child: MaterialApp(
         title: 'Quản lý chi tiêu',
         debugShowCheckedModeBanner: false,

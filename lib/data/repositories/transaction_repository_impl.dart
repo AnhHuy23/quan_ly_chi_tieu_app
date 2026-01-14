@@ -4,14 +4,25 @@ import '../models/transaction_model.dart';
 import '../models/category_model.dart';
 
 /// Transaction Repository - Provider cho UI
+/// Quản lý state và business logic cho transactions & categories
 class TransactionRepository extends ChangeNotifier {
-  final LocalDatabase _db = LocalDatabase();
+  /// Dependency injection cho database (dễ test)
+  final LocalDatabase _db;
+
+  TransactionRepository({LocalDatabase? database})
+    : _db = database ?? LocalDatabase();
 
   List<TransactionModel> _transactions = [];
   List<CategoryModel> _categories = [];
 
   DateTime _selectedMonth = DateTime.now();
   bool _isLoading = false;
+
+  // === CACHED VALUES (tránh query DB liên tục) ===
+  double _cachedTotalIncome = 0;
+  double _cachedTotalExpense = 0;
+  double _cachedTotalBalance = 0;
+  bool _isStatisticsDirty = true;
 
   // Getters
   List<TransactionModel> get transactions => _transactions;
@@ -27,19 +38,26 @@ class TransactionRepository extends ChangeNotifier {
   List<CategoryModel> get incomeCategories =>
       _categories.where((c) => !c.isExpense).toList();
 
-  /// Tổng thu nhập tháng hiện tại
-  double get totalIncome =>
-      _db.getTotalIncomeByMonth(_selectedMonth.year, _selectedMonth.month);
+  /// Tổng thu nhập tháng hiện tại (CACHED)
+  double get totalIncome {
+    _ensureStatisticsComputed();
+    return _cachedTotalIncome;
+  }
 
-  /// Tổng chi tiêu tháng hiện tại
-  double get totalExpense =>
-      _db.getTotalExpenseByMonth(_selectedMonth.year, _selectedMonth.month);
+  /// Tổng chi tiêu tháng hiện tại (CACHED)
+  double get totalExpense {
+    _ensureStatisticsComputed();
+    return _cachedTotalExpense;
+  }
 
-  /// Số dư
+  /// Số dư tháng hiện tại
   double get balance => totalIncome - totalExpense;
 
-  /// Số dư tổng (all time)
-  double get totalBalance => _db.getBalance();
+  /// Số dư tổng (all time) - CACHED
+  double get totalBalance {
+    _ensureStatisticsComputed();
+    return _cachedTotalBalance;
+  }
 
   /// Giao dịch group theo ngày
   Map<DateTime, List<TransactionModel>> get transactionsByDate {
@@ -49,6 +67,26 @@ class TransactionRepository extends ChangeNotifier {
       result.putIfAbsent(dateKey, () => []).add(t);
     }
     return result;
+  }
+
+  /// Tính toán thống kê nếu cache đã dirty
+  void _ensureStatisticsComputed() {
+    if (!_isStatisticsDirty) return;
+
+    _cachedTotalIncome = _transactions
+        .where((t) => !t.isExpense)
+        .fold(0.0, (sum, t) => sum + t.amount);
+    _cachedTotalExpense = _transactions
+        .where((t) => t.isExpense)
+        .fold(0.0, (sum, t) => sum + t.amount);
+    _cachedTotalBalance = _db.getBalance();
+
+    _isStatisticsDirty = false;
+  }
+
+  /// Đánh dấu cache cần tính lại
+  void _invalidateCache() {
+    _isStatisticsDirty = true;
   }
 
   /// Khởi tạo repository
@@ -70,6 +108,7 @@ class TransactionRepository extends ChangeNotifier {
       _selectedMonth.year,
       _selectedMonth.month,
     );
+    _invalidateCache();
   }
 
   /// Reload transactions
@@ -78,6 +117,7 @@ class TransactionRepository extends ChangeNotifier {
       _selectedMonth.year,
       _selectedMonth.month,
     );
+    _invalidateCache();
     notifyListeners();
   }
 
@@ -85,6 +125,7 @@ class TransactionRepository extends ChangeNotifier {
   void changeMonth(DateTime month) {
     _selectedMonth = month;
     _transactions = _db.getTransactionsByMonth(month.year, month.month);
+    _invalidateCache();
     notifyListeners();
   }
 
@@ -190,5 +231,12 @@ class TransactionRepository extends ChangeNotifier {
     await _db.deleteCategory(id);
     _categories = _db.getAllCategories();
     notifyListeners();
+  }
+
+  /// Cleanup resources
+  @override
+  void dispose() {
+    _db.close();
+    super.dispose();
   }
 }

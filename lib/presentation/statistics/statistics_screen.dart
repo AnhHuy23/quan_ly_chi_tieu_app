@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/currency_formatter.dart';
+import '../../core/locale/locale_provider.dart';
 import '../../data/models/category_model.dart';
 import '../../data/repositories/transaction_repository_impl.dart';
 
@@ -33,6 +34,8 @@ class _StatisticsScreenState extends State<StatisticsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final strings = context.watch<LocaleProvider>().strings;
+
     return Consumer<TransactionRepository>(
       builder: (context, repo, _) {
         return SafeArea(
@@ -44,7 +47,7 @@ class _StatisticsScreenState extends State<StatisticsScreen>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Thống kê', style: AppTypography.heading2),
+                    Text(strings.statistics, style: AppTypography.heading2),
                     // Month selector
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -106,9 +109,9 @@ class _StatisticsScreenState extends State<StatisticsScreen>
                   labelStyle: AppTypography.bodyMedium.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
-                  tabs: const [
-                    Tab(text: 'Chi tiêu'),
-                    Tab(text: 'Thu nhập'),
+                  tabs: [
+                    Tab(text: strings.expense),
+                    Tab(text: strings.income),
                   ],
                 ),
               ),
@@ -118,7 +121,10 @@ class _StatisticsScreenState extends State<StatisticsScreen>
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
-                  children: [_buildExpenseStats(repo), _buildIncomeStats(repo)],
+                  children: [
+                    _buildExpenseStats(repo, strings),
+                    _buildIncomeStats(repo, strings),
+                  ],
                 ),
               ),
             ],
@@ -128,12 +134,12 @@ class _StatisticsScreenState extends State<StatisticsScreen>
     );
   }
 
-  Widget _buildExpenseStats(TransactionRepository repo) {
+  Widget _buildExpenseStats(TransactionRepository repo, AppStrings strings) {
     final expenseByCategory = repo.getExpenseByCategory();
     final totalExpense = repo.totalExpense;
 
     if (expenseByCategory.isEmpty) {
-      return _buildEmptyState('chi tiêu');
+      return _buildEmptyState(strings.expense, strings);
     }
 
     return SingleChildScrollView(
@@ -142,7 +148,7 @@ class _StatisticsScreenState extends State<StatisticsScreen>
         children: [
           // Summary card
           _buildSummaryCard(
-            title: 'Tổng chi tiêu',
+            title: '${strings.total} ${strings.expense}',
             amount: totalExpense,
             color: AppColors.expense,
             icon: Icons.arrow_upward_rounded,
@@ -154,18 +160,18 @@ class _StatisticsScreenState extends State<StatisticsScreen>
           const SizedBox(height: AppSpacing.lg),
 
           // Category breakdown
-          _buildCategoryBreakdown(expenseByCategory, totalExpense),
+          _buildCategoryBreakdown(expenseByCategory, totalExpense, strings),
           const SizedBox(height: 100),
         ],
       ),
     );
   }
 
-  Widget _buildIncomeStats(TransactionRepository repo) {
+  Widget _buildIncomeStats(TransactionRepository repo, AppStrings strings) {
     final totalIncome = repo.totalIncome;
 
     if (totalIncome == 0) {
-      return _buildEmptyState('thu nhập');
+      return _buildEmptyState(strings.income, strings);
     }
 
     // Calculate income by category
@@ -184,7 +190,7 @@ class _StatisticsScreenState extends State<StatisticsScreen>
         children: [
           // Summary card
           _buildSummaryCard(
-            title: 'Tổng thu nhập',
+            title: '${strings.total} ${strings.income}',
             amount: totalIncome,
             color: AppColors.income,
             icon: Icons.arrow_downward_rounded,
@@ -196,7 +202,7 @@ class _StatisticsScreenState extends State<StatisticsScreen>
           const SizedBox(height: AppSpacing.lg),
 
           // Category breakdown
-          _buildCategoryBreakdown(incomeByCategory, totalIncome),
+          _buildCategoryBreakdown(incomeByCategory, totalIncome, strings),
           const SizedBox(height: 100),
         ],
       ),
@@ -342,6 +348,7 @@ class _StatisticsScreenState extends State<StatisticsScreen>
   Widget _buildCategoryBreakdown(
     Map<CategoryModel, double> data,
     double total,
+    AppStrings strings,
   ) {
     final entries = data.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
@@ -349,7 +356,7 @@ class _StatisticsScreenState extends State<StatisticsScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Chi tiết theo danh mục', style: AppTypography.heading3),
+        Text(strings.expenseByCategory, style: AppTypography.heading3),
         const SizedBox(height: AppSpacing.md),
         ...entries.map((entry) {
           final category = entry.key;
@@ -425,7 +432,7 @@ class _StatisticsScreenState extends State<StatisticsScreen>
     );
   }
 
-  Widget _buildEmptyState(String type) {
+  Widget _buildEmptyState(String type, AppStrings strings) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -437,14 +444,14 @@ class _StatisticsScreenState extends State<StatisticsScreen>
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'Chưa có dữ liệu $type',
+            '${strings.noData} $type',
             style: AppTypography.heading3.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'Thêm giao dịch để xem thống kê',
+            strings.addTransaction,
             style: AppTypography.bodyMedium.copyWith(color: AppColors.textHint),
           ),
         ],

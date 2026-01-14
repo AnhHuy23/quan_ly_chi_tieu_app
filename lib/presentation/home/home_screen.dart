@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/currency_formatter.dart';
+import '../../core/locale/locale_provider.dart';
 import '../../data/repositories/transaction_repository_impl.dart';
 import '../add_transaction/add_transaction_screen.dart';
 import '../statistics/statistics_screen.dart';
@@ -22,6 +23,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = context.watch<LocaleProvider>().strings;
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
@@ -32,11 +35,11 @@ class _HomeScreenState extends State<HomeScreen> {
         child: const Icon(Icons.add, size: 28),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: _buildBottomNav(strings),
     );
   }
 
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(AppStrings strings) {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -59,14 +62,14 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               _buildNavItem(
                 icon: Icons.home_rounded,
-                label: 'Trang chủ',
+                label: strings.home,
                 isSelected: _currentIndex == 0,
                 onTap: () => setState(() => _currentIndex = 0),
               ),
               const SizedBox(width: 60), // Space for FAB
               _buildNavItem(
                 icon: Icons.pie_chart_rounded,
-                label: 'Thống kê',
+                label: strings.statistics,
                 isSelected: _currentIndex == 1,
                 onTap: () => setState(() => _currentIndex = 1),
               ),
@@ -127,6 +130,8 @@ class _HomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = context.watch<LocaleProvider>().strings;
+
     return Consumer<TransactionRepository>(
       builder: (context, repo, _) {
         if (repo.isLoading) {
@@ -142,7 +147,7 @@ class _HomeTab extends StatelessWidget {
               SliverAppBar(
                 floating: true,
                 backgroundColor: AppColors.background,
-                title: Text('Quản lý chi tiêu', style: AppTypography.heading2),
+                title: Text(strings.appName, style: AppTypography.heading2),
                 actions: [
                   IconButton(
                     onPressed: () {
@@ -182,9 +187,9 @@ class _HomeTab extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Giao dịch', style: AppTypography.heading3),
+                      Text(strings.transactions, style: AppTypography.heading3),
                       Text(
-                        '${repo.transactions.length} giao dịch',
+                        strings.transactionCount(repo.transactions.length),
                         style: AppTypography.bodySmall,
                       ),
                     ],
@@ -209,9 +214,9 @@ class _HomeTab extends StatelessWidget {
                   onTransactionDelete: (id) {
                     repo.deleteTransaction(id);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Đã xóa giao dịch'),
-                        duration: Duration(seconds: 2),
+                      SnackBar(
+                        content: Text(strings.deletedTransaction),
+                        duration: const Duration(seconds: 2),
                       ),
                     );
                   },

@@ -233,6 +233,21 @@ class TransactionRepository extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ============ DANGER ZONE ============
+
+  /// Xóa tất cả giao dịch
+  Future<void> deleteAllTransactions() async {
+    await _db.deleteAllTransactions();
+    await reload();
+  }
+
+  /// Reset app về mặc định
+  Future<void> resetApp() async {
+    await _db.resetDatabase();
+    await _loadData();
+    notifyListeners();
+  }
+
   /// Cleanup resources
   @override
   void dispose() {

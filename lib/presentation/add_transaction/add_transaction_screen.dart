@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/currency_formatter.dart';
+import '../../core/locale/locale_provider.dart';
 import '../../data/models/transaction_model.dart';
 import '../../data/models/category_model.dart';
 import '../../data/repositories/transaction_repository_impl.dart';
@@ -51,6 +52,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = context.watch<LocaleProvider>().strings;
     final repo = context.watch<TransactionRepository>();
     final categories = _isExpense
         ? repo.expenseCategories
@@ -64,11 +66,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(isEditing ? 'Sửa giao dịch' : 'Thêm giao dịch'),
+        title: Text(
+          isEditing ? strings.editTransaction : strings.addTransaction,
+        ),
         actions: [
           if (isEditing)
             IconButton(
-              onPressed: _deleteTransaction,
+              onPressed: () => _deleteTransaction(strings),
               icon: const Icon(Icons.delete_outline, color: AppColors.error),
             ),
         ],
@@ -79,34 +83,34 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           padding: const EdgeInsets.all(AppSpacing.md),
           children: [
             // Transaction type toggle
-            _buildTypeToggle(),
+            _buildTypeToggle(strings),
             const SizedBox(height: AppSpacing.lg),
 
             // Amount input
-            _buildAmountInput(),
+            _buildAmountInput(strings),
             const SizedBox(height: AppSpacing.lg),
 
             // Category selector
-            _buildCategorySelector(categories),
+            _buildCategorySelector(categories, strings),
             const SizedBox(height: AppSpacing.lg),
 
             // Date picker
-            _buildDatePicker(),
+            _buildDatePicker(strings),
             const SizedBox(height: AppSpacing.lg),
 
             // Note input
-            _buildNoteInput(),
+            _buildNoteInput(strings),
             const SizedBox(height: AppSpacing.xl),
 
             // Save button
-            _buildSaveButton(),
+            _buildSaveButton(strings),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTypeToggle() {
+  Widget _buildTypeToggle(AppStrings strings) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -117,7 +121,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         children: [
           Expanded(
             child: _buildTypeButton(
-              label: 'Chi tiêu',
+              label: strings.expenseType,
               icon: Icons.arrow_upward_rounded,
               isSelected: _isExpense,
               color: AppColors.expense,
@@ -129,7 +133,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           ),
           Expanded(
             child: _buildTypeButton(
-              label: 'Thu nhập',
+              label: strings.incomeType,
               icon: Icons.arrow_downward_rounded,
               isSelected: !_isExpense,
               color: AppColors.income,
@@ -188,12 +192,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  Widget _buildAmountInput() {
+  Widget _buildAmountInput(AppStrings strings) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Số tiền',
+          strings.amount,
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -220,11 +224,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Vui lòng nhập số tiền';
+              return strings.enterAmount;
             }
             final amount = CurrencyFormatter.parse(value);
             if (amount <= 0) {
-              return 'Số tiền phải lớn hơn 0';
+              return strings.enterAmount;
             }
             return null;
           },
@@ -233,12 +237,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  Widget _buildCategorySelector(List<CategoryModel> categories) {
+  Widget _buildCategorySelector(
+    List<CategoryModel> categories,
+    AppStrings strings,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Danh mục',
+          strings.category,
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -297,12 +304,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  Widget _buildDatePicker() {
+  Widget _buildDatePicker(AppStrings strings) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Ngày',
+          strings.date,
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -339,12 +346,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  Widget _buildNoteInput() {
+  Widget _buildNoteInput(AppStrings strings) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Ghi chú',
+          strings.note,
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -354,17 +361,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           controller: _noteController,
           maxLines: 2,
           style: AppTypography.bodyLarge,
-          decoration: const InputDecoration(
-            hintText: 'Thêm ghi chú (tùy chọn)',
+          decoration: InputDecoration(
+            hintText: '${strings.note} (${strings.optional})',
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSaveButton() {
+  Widget _buildSaveButton(AppStrings strings) {
     return ElevatedButton(
-      onPressed: _isLoading ? null : _saveTransaction,
+      onPressed: _isLoading ? null : () => _saveTransaction(strings),
       style: ElevatedButton.styleFrom(
         backgroundColor: _isExpense ? AppColors.expense : AppColors.income,
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
@@ -379,7 +386,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
             )
           : Text(
-              isEditing ? 'Cập nhật' : 'Thêm giao dịch',
+              isEditing ? strings.save : strings.addTransaction,
               style: AppTypography.button,
             ),
     );
@@ -409,12 +416,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
-  Future<void> _saveTransaction() async {
+  Future<void> _saveTransaction(AppStrings strings) async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategoryId == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Vui lòng chọn danh mục')));
+      ).showSnackBar(SnackBar(content: Text(strings.selectCategory)));
       return;
     }
 
@@ -448,7 +455,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isEditing ? 'Đã cập nhật giao dịch' : 'Đã thêm giao dịch',
+              isEditing ? strings.updatedTransaction : strings.savedTransaction,
             ),
           ),
         );
@@ -456,7 +463,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -464,22 +471,22 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
-  Future<void> _deleteTransaction() async {
+  Future<void> _deleteTransaction(AppStrings strings) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Xóa giao dịch?'),
-        content: const Text('Bạn có chắc muốn xóa giao dịch này?'),
+        title: Text(strings.confirmDelete),
+        content: Text(strings.confirmDeleteTransaction),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy'),
+            child: Text(strings.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Xóa'),
+            child: Text(strings.delete),
           ),
         ],
       ),
@@ -491,7 +498,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       Navigator.pop(context);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Đã xóa giao dịch')));
+      ).showSnackBar(SnackBar(content: Text(strings.deletedTransaction)));
     }
   }
 }

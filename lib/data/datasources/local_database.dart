@@ -228,6 +228,21 @@ class LocalDatabase {
     return result;
   }
 
+  // ============ DANGER ZONE ============
+
+  /// Xóa tất cả giao dịch
+  Future<void> deleteAllTransactions() async {
+    await _transactionBox.clear();
+  }
+
+  /// Reset database về mặc định
+  Future<void> resetDatabase() async {
+    await _transactionBox.clear();
+    await _categoryBox.clear();
+    _isInitialized = false;
+    await init(); // Re-initialize with default categories
+  }
+
   /// Đóng database
   Future<void> close() async {
     await _transactionBox.close();
